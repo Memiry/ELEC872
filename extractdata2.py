@@ -4,19 +4,20 @@ import os
 import shutil
 import glob
 
-# ================== 用户配置区 ==================
-INPUT_FOLDER = r'D:\872proj\mpii_human_pose_v1\Selectedimages'  # 你的原始图片路径
-OUTPUT_FOLDER = r'D:\872proj\mpii_human_pose_v1\Selectedimages2'  # 新的、更干净的文件夹
+# ================== 配置区 ==================
+INPUT_FOLDER = r'D:\872proj\mpii_human_pose_v1\Selectedimages'  # 原始图片路径
+OUTPUT_FOLDER = r'D:\872proj\mpii_human_pose_v1\Selectedimages2'  # 新文件夹
 
-# 1. 坐姿阈值 (越小越严)
+# 1. 坐姿阈值 (0.0 - 1.0)
+# 数值越小，要求腿越平，筛选越严格
 SITTING_THRESHOLD = 0.15
 
-# 2. [新功能] 尺寸阈值 (0.0 - 1.0)
+# 2. 尺寸阈值 (0.0 - 1.0)
 # 如果检测到的人占画面的比例小于这个数，说明是背景里的路人，扔掉！
 # 建议 0.2 (即占据至少20%的画面)
 MIN_BODY_SIZE = 0.2
 
-# 3. [新功能] 居中阈值
+# 3. 居中阈值
 # 如果人的中心点偏离画面中心太远，扔掉
 CENTER_TOLERANCE = 0.3
 # ==============================================
@@ -25,7 +26,7 @@ mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(
     static_image_mode=True,
     model_complexity=1,
-    min_detection_confidence=0.6  # 提高一点置信度
+    min_detection_confidence=0.6  # 提高置信度
 )
 
 if not os.path.exists(OUTPUT_FOLDER):
@@ -35,7 +36,7 @@ print(f"正在扫描: {INPUT_FOLDER}")
 image_files = glob.glob(os.path.join(INPUT_FOLDER, "*.jpg")) + \
               glob.glob(os.path.join(INPUT_FOLDER, "*.png"))
 
-print(f"找到 {len(image_files)} 张图，开始严格筛选...")
+print(f"找到 {len(image_files)} 张图，开始筛选...")
 
 saved_count = 0
 rejected_count = 0
@@ -50,7 +51,7 @@ for img_path in image_files:
     if results.pose_landmarks:
         landmarks = results.pose_landmarks.landmark
 
-        # --- 1. 计算人的尺寸 (Bounding Box) ---
+        # 1. 计算人尺寸
         x_coords = [lm.x for lm in landmarks]
         y_coords = [lm.y for lm in landmarks]
         min_x, max_x = min(x_coords), max(x_coords)
@@ -61,19 +62,19 @@ for img_path in image_files:
         height = max_y - min_y
         area = width * height  # 面积 (0.0 - 1.0)
 
-        # 如果人太小 (比如是背景里的路人)，跳过
+        # 如果人太小比如是背景里的路人，跳过
         if area < MIN_BODY_SIZE:
             rejected_count += 1
             continue
 
-        # --- 2. 计算是否居中 ---
+        #  2. 计算是否居中
         center_x = (min_x + max_x) / 2
         # 0.5 是正中心。如果偏离超过 0.3 (即 <0.2 或 >0.8)，跳过
         if abs(center_x - 0.5) > CENTER_TOLERANCE:
             rejected_count += 1
             continue
 
-        # --- 3. 坐姿判断 (原有逻辑 + 躯干逻辑) ---
+        # 3. 坐姿判断 (原有逻辑 + 躯干逻辑)
         # 大腿平不平
         left_hip_y = landmarks[23].y
         left_knee_y = landmarks[25].y
@@ -82,13 +83,13 @@ for img_path in image_files:
 
         diff_leg = (abs(left_hip_y - left_knee_y) + abs(right_hip_y - right_knee_y)) / 2
 
-        # 躯干直不直 (防止有人躺着)
+        # 躯干直不直 (防止躺着)
         # 比较肩膀和屁股的 X 坐标差。如果坐得直，X应该差不多。
         shoulder_x = (landmarks[11].x + landmarks[12].x) / 2
         hip_x = (landmarks[23].x + landmarks[24].x) / 2
         torso_lean = abs(shoulder_x - hip_x)
 
-        # 综合判断：腿要平 AND 躯干不能歪得太离谱
+        # 综合判断腿 AND 躯干
         if diff_leg < SITTING_THRESHOLD and torso_lean < 0.3:
             # 通过所有考验，保存！
             file_name = os.path.basename(img_path)

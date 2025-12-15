@@ -24,8 +24,8 @@ model = joblib.load(MODEL_PATH)
 y_pred = model.predict(X_test)
 
 acc = accuracy_score(y_test, y_pred)
-print(f"=== 实验结果 ===")
-print(f"Accuracy (准确率): {acc*100:.2f}%")
+print(f"=== RESULTS ===")
+print(f"Accuracy: {acc*100:.2f}%")
 print("\n详细报告:")
 print(classification_report(y_test, y_pred))
 

@@ -3,11 +3,13 @@ import mediapipe as mp
 import csv
 import glob
 import os
+from pathlib import Path
 
 
-MPI_FOLDER_PATH = r'D:\872proj\SITTING'
+current_script_dir = Path(__file__).parent
+MPI_FOLDER_PATH = current_script_dir / 'SITTING'
 OUTPUT_MPI_CSV = 'mpi_converted_data.csv'
-# =======================================
+
 
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(static_image_mode=True, min_detection_confidence=0.5, model_complexity=1)
