@@ -1,7 +1,7 @@
 import cv2
 import mediapipe as mp
 import os
-import shutil  # 这个库用来复制文件
+import shutil 
 import glob
 
 INPUT_FOLDER = r'D:\872proj\mpii_human_pose_v1\images'

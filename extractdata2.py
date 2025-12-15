@@ -13,8 +13,7 @@ OUTPUT_FOLDER = r'D:\872proj\mpii_human_pose_v1\Selectedimages2'  # 新文件夹
 SITTING_THRESHOLD = 0.15
 
 # 2. 尺寸阈值 (0.0 - 1.0)
-# 如果检测到的人占画面的比例小于这个数，说明是背景里的路人，扔掉！
-# 建议 0.2 (即占据至少20%的画面)
+# 建议 0.2
 MIN_BODY_SIZE = 0.2
 
 # 3. 居中阈值
@@ -62,19 +61,19 @@ for img_path in image_files:
         height = max_y - min_y
         area = width * height  # 面积 (0.0 - 1.0)
 
-        # 如果人太小比如是背景里的路人，跳过
+        # 人太小跳过
         if area < MIN_BODY_SIZE:
             rejected_count += 1
             continue
 
         #  2. 计算是否居中
         center_x = (min_x + max_x) / 2
-        # 0.5 是正中心。如果偏离超过 0.3 (即 <0.2 或 >0.8)，跳过
+        # 0.5 是正中心。如果偏离超过 0.3 (即 <0.2 或 >0.8)
         if abs(center_x - 0.5) > CENTER_TOLERANCE:
             rejected_count += 1
             continue
 
-        # 3. 坐姿判断 (原有逻辑 + 躯干逻辑)
+        # 3. 坐姿判断
         # 大腿平不平
         left_hip_y = landmarks[23].y
         left_knee_y = landmarks[25].y
@@ -83,15 +82,15 @@ for img_path in image_files:
 
         diff_leg = (abs(left_hip_y - left_knee_y) + abs(right_hip_y - right_knee_y)) / 2
 
-        # 躯干直不直 (防止躺着)
-        # 比较肩膀和屁股的 X 坐标差。如果坐得直，X应该差不多。
+        # 躯干直不直
+        # 比较肩膀和屁股的 X 坐标差
         shoulder_x = (landmarks[11].x + landmarks[12].x) / 2
         hip_x = (landmarks[23].x + landmarks[24].x) / 2
         torso_lean = abs(shoulder_x - hip_x)
 
         # 综合判断腿 AND 躯干
         if diff_leg < SITTING_THRESHOLD and torso_lean < 0.3:
-            # 通过所有考验，保存！
+            # 通过保存
             file_name = os.path.basename(img_path)
             shutil.copy(img_path, os.path.join(OUTPUT_FOLDER, file_name))
             saved_count += 1
